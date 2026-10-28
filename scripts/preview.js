@@ -30,7 +30,7 @@ const api = {
     if (a.operation === "stage") {
       if (a.path !== "robot.urdf")
         throw Error("Fixture only exposes robot.urdf");
-      return { path: path.join(root, "robot.urdf") };
+      return { workspace: root, path: "robot.urdf" };
     }
     throw Error("Unsupported fixture operation");
   },
@@ -39,7 +39,7 @@ const api = {
 const plugin = require("../index.js");
 const server = http.createServer(async (req, res) => {
   if (req.method === "GET" && req.url === "/viewer") {
-    res.setHeader("Content-Type", "text/html");
+    res.setHeader("Content-Type", "text/html; charset=utf-8");
     res.setHeader(
       "Content-Security-Policy",
       "default-src 'none'; script-src 'unsafe-inline' blob:; style-src 'unsafe-inline'; img-src data: blob:; connect-src 'none'; worker-src blob:; frame-ancestors 'self'",
@@ -47,9 +47,9 @@ const server = http.createServer(async (req, res) => {
     return res.end(fs.readFileSync("viewer.html"));
   }
   if (req.method === "GET" && req.url === "/") {
-    res.setHeader("Content-Type", "text/html");
+    res.setHeader("Content-Type", "text/html; charset=utf-8");
     return res.end(
-      `<!doctype html><html><style>html,body,iframe{margin:0;width:100%;height:100%;border:0;overflow:hidden}</style><iframe src="/viewer" sandbox="allow-scripts"></iframe><script>const frame=document.querySelector('iframe');window.addEventListener('message',e=>{if(e.source!==frame.contentWindow||e.data?.type!=='aide.workbench.ready')return;const channel=new MessageChannel();channel.port1.onmessage=async e=>{const m=e.data;let result;try{if(m.method!=='tool.call'||m.tool!=='rviz_io')throw Error('Unexpected method');const r=await fetch('/call',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(m.arguments)});const v=await r.json();if(!r.ok)throw Error(v.error);result={requestId:m.requestId,status:'ok',result:v}}catch(e){result={requestId:m.requestId,status:'error',error:e.message}}channel.port1.postMessage(result)};frame.contentWindow.postMessage({type:'aide.workbench.connect',protocol:1,pluginId:'rviz',tools:['rviz_io'],capabilities:[]},'*',[channel.port2])});</script></html>`,
+      `<!doctype html><html><style>html,body,iframe{margin:0;width:100%;height:100%;border:0;overflow:hidden}</style><iframe src="/viewer" sandbox="allow-scripts"></iframe><script>const frame=document.querySelector('iframe');window.addEventListener('message',e=>{if(e.source!==frame.contentWindow||e.data?.type!=='aide.workbench.ready')return;const channel=new MessageChannel();channel.port1.onmessage=async e=>{const m=e.data;let result;try{if(m.method!=='tool.call'||!['rviz_io','rviz_save_config'].includes(m.tool))throw Error('Unexpected method');const r=await fetch('/call',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tool:m.tool,arguments:m.arguments})});const v=await r.json();if(!r.ok)throw Error(v.error);result={requestId:m.requestId,status:'ok',result:v}}catch(e){result={requestId:m.requestId,status:'error',error:e.message}}channel.port1.postMessage(result)};frame.contentWindow.postMessage({type:'aide.workbench.connect',protocol:1,pluginId:'rviz',tools:['rviz_io','rviz_save_config'],capabilities:[]},'*',[channel.port2])});</script></html>`,
     );
   }
   if (req.method === "POST" && req.url === "/call") {
@@ -59,7 +59,22 @@ const server = http.createServer(async (req, res) => {
         b += c;
         if (b.length > 16384) throw Error("Budget");
       }
-      const value = await plugin._io(JSON.parse(b), api);
+      if (
+        req.headers.origin !== "http://127.0.0.1:18496" ||
+        req.headers["content-type"] !== "application/json"
+      )
+        throw Error("Origin or content type rejected");
+      const message = JSON.parse(b);
+      if (!["rviz_io", "rviz_save_config"].includes(message.tool))
+        throw Error("Unknown tool");
+      if (message.tool === "rviz_io" && message.arguments.action === "save")
+        throw Error("Use write tool");
+      const value = await plugin._io(
+        message.tool === "rviz_save_config"
+          ? { action: "save", config: message.arguments.config }
+          : message.arguments,
+        api,
+      );
       res.setHeader("Content-Type", "application/json");
       res.end(JSON.stringify(value));
     } catch (e) {

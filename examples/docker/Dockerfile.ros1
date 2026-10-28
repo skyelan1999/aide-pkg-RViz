@@ -1,0 +1,7 @@
+FROM ros:noetic-ros-core
+RUN apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+    ros-noetic-rosbridge-server ros-noetic-rosapi ros-noetic-tf2-msgs \
+    ros-noetic-nav-msgs ros-noetic-visualization-msgs && rm -rf /var/lib/apt/lists/*
+COPY scripts/ros-publisher.py /opt/rviz-demo/publisher.py
+COPY examples/docker/start-demo.sh /opt/rviz-demo/start-demo.sh
+ENTRYPOINT ["/bin/bash", "/opt/rviz-demo/start-demo.sh"]

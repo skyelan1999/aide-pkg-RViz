@@ -62,24 +62,29 @@ async function io(a, api, settings = {}) {
     if (a.action === "browse")
       return api.sources({
         operation: "browse",
-        source: a.source,
+        source: a.fileSource,
         path: a.path
       });
     const staged = await api.sources({
       operation: "stage",
-      source: a.source,
+      source: a.fileSource,
       path: a.path,
       slot: "path",
       maxBytes: 2 * 1048576,
       maxFiles: 1,
       maxDepth: 1
     });
-    const stat = fs.statSync(staged.path);
+    if (typeof staged.workspace !== "string" || !path.isAbsolute(staged.workspace))
+      throw Error("Invalid host snapshot root");
+    const base = fs.realpathSync(staged.workspace), file2 = fs.realpathSync(path.resolve(base, staged.path));
+    if (file2 !== base && !file2.startsWith(base + path.sep))
+      throw Error("Host snapshot path escapes snapshot root");
+    const stat = fs.statSync(file2);
     if (!stat.isFile() || stat.size > 2 * 1048576)
       throw Error("File budget exceeded");
     return {
       path: a.path,
-      data: fs.readFileSync(staged.path).toString("base64")
+      data: fs.readFileSync(file2).toString("base64")
     };
   }
   if (a.action === "save") {
@@ -171,7 +176,6 @@ module.exports = {
               "sources",
               "browse",
               "read",
-              "save",
               "open",
               "close",
               "subscribe",
@@ -182,7 +186,7 @@ module.exports = {
           },
           id: { type: "string" },
           path: { type: "string" },
-          source: { type: "string" },
+          fileSource: { type: "string" },
           endpoint: { type: "string" },
           ros: { type: "integer" },
           qos: { type: "boolean" },
@@ -197,7 +201,31 @@ module.exports = {
         additionalProperties: false
       },
       scheduling: { resources: [] },
-      handler: (a, api) => io(a, api, ctx.settings || {})
+      handler: (a, api) => {
+        if (a.action === "save")
+          throw Error("Use rviz_save_config for a configuration proposal");
+        return io(a, api, ctx.settings || {});
+      }
+    });
+    ctx.tool({
+      name: "rviz_save_config",
+      description: "Propose saving RViz display preferences in the current project; requires Aide approval and never writes directly.",
+      parameters: {
+        type: "object",
+        properties: { config: { type: "object" } },
+        required: ["config"],
+        additionalProperties: false
+      },
+      scheduling: {
+        resources: [
+          {
+            root: "workspace",
+            path: ".aide/rviz/session.json",
+            access: "write"
+          }
+        ]
+      },
+      handler: (a, api) => io({ action: "save", config: a.config }, api)
     });
   },
   _io: io

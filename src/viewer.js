@@ -1,4 +1,5 @@
 import * as T from "three";
+import { mountGuide } from "./guide.js";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { STLLoader } from "three/addons/loaders/STLLoader.js";
 import { OBJLoader } from "three/addons/loaders/OBJLoader.js";
@@ -10,9 +11,11 @@ let queue = Promise.resolve(),
   busy = false,
   lang = navigator.language.startsWith("zh") ? "zh" : "en",
   lastFrame = null,
-  actionMessage = "";
+  actionMessage = "",
+  guide = null;
 const translations = {
   subtitle: "Projects, transforms & live topics",
+  guide: "How to use",
   reset: "Reset camera",
   connection: "Connection",
   mode: "Transport",
@@ -59,14 +62,17 @@ function language() {
     e.textContent = lang === "zh" ? t : translations[e.dataset.i18n];
   $("language").textContent = lang === "zh" ? "EN" : "中文";
   if (lastFrame) renderStatus(lastFrame);
+  guide?.setLanguage(lang);
 }
 language();
 $("language").onclick = () => {
   lang = lang === "zh" ? "en" : "zh";
   language();
 };
-function tell(s, bad = false) {
-  if (bad) actionMessage = s;
+function tell(s, bad = false, persistent = true) {
+  if (bad && persistent) actionMessage = s;
+  if (bad) guide?.showError(s);
+  else if (!actionMessage) guide?.clearError();
   $("status").textContent = s;
   $("status").className = bad ? "error" : "";
   $("notice").textContent = s;
@@ -74,9 +80,16 @@ function tell(s, bad = false) {
 }
 function call(a) {
   const task = queue
-    .then(() => client.call("rviz_io", a))
+    .then(() =>
+      client.call(
+        a.action === "save" ? "rviz_save_config" : "rviz_io",
+        a.action === "save" ? { config: a.config } : a,
+      ),
+    )
     .then((v) => {
       if (v.status === "error") throw Error(v.error);
+      if (v.status === "proposal_pending")
+        return { proposal: { id: v.proposalId || v.taskId } };
       return v.result;
     });
   queue = task.catch(() => {});
@@ -287,6 +300,7 @@ function drawLayer(entry) {
 }
 function renderStatus(s) {
   lastFrame = s;
+  const firstProblem = s.layers.find((l) => l.error)?.error;
   if (!s.connected) {
     for (const o of objects.values()) o.visible = false;
     for (const set of markerSets.values())
@@ -303,13 +317,15 @@ function renderStatus(s) {
     " robot links";
   tell(
     s.error ||
+      firstProblem ||
       actionMessage ||
       (s.connected
         ? lang === "zh"
           ? "已连接 · 只读预览"
           : "Connected · read-only preview"
         : "Connecting…"),
-    !!s.error,
+    !!(s.error || firstProblem),
+    false,
   );
   const selected = $("topics").value;
   const topicsKey = JSON.stringify(s.topics);
@@ -332,6 +348,11 @@ function renderStatus(s) {
         ?.topic ||
       "";
   }
+  $("add").disabled = !s.connected || !$("topics").options.length;
+  $("refresh").disabled = !s.connected;
+  $("save").disabled = !s.connected || !s.layers.length;
+  if (s.error && !s.connected) $("connect").disabled = false;
+  syncGuide();
   $("frames").textContent = s.frames
     .map((f) => f.frame + (f.error ? " · !" : ""))
     .join("\n");
@@ -376,6 +397,14 @@ function renderStatus(s) {
     }),
   );
 }
+function syncGuide() {
+  guide?.update({
+    connected: !!lastFrame?.connected,
+    topics: [...$("topics").options].filter((o) => o.value),
+    layers:
+      (lastFrame?.layers.length || 0) + robotLinks.size + (demoGroup ? 1 : 0),
+  });
+}
 async function poll() {
   if (!session || stopped || busy) return;
   busy = true;
@@ -411,9 +440,12 @@ async function disconnect() {
   $("sceneInfo").textContent = "OFFLINE · Grid / Axes";
   $("frames").textContent = "—";
   tell(lang === "zh" ? "已断开" : "Disconnected");
+  $("add").disabled = $("refresh").disabled = $("save").disabled = true;
+  syncGuide();
 }
 async function action(fn) {
   actionMessage = "";
+  guide?.clearError();
   try {
     await fn();
   } catch (e) {
@@ -482,7 +514,7 @@ $("save").onclick = () =>
 async function browse() {
   const r = await call({
     action: "browse",
-    source: $("sources").value,
+    fileSource: $("sources").value,
     path: $("directory").value,
   });
   $("filelist").replaceChildren(
@@ -509,7 +541,11 @@ $("parent").onclick = () =>
     return browse();
   });
 async function read(path) {
-  const r = await call({ action: "read", source: $("sources").value, path });
+  const r = await call({
+    action: "read",
+    fileSource: $("sources").value,
+    path,
+  });
   return Uint8Array.from(atob(r.data), (c) => c.charCodeAt(0));
 }
 function vector(s, def = "0 0 0") {
@@ -689,6 +725,7 @@ async function urdf(bytes, path) {
     r.object.quaternion.copy(q);
     r.object.scale.copy(scale);
   }
+  syncGuide();
   tell(
     "URDF · " +
       links.length +
@@ -789,6 +826,34 @@ client.onEvent((e) => {
   if (e.event === "scope.revoked") cleanup();
 });
 window.addEventListener("pagehide", cleanup);
+guide = mountGuide({
+  document,
+  language: lang,
+  onDemo: () => $("demo").click(),
+  onFirstTopic: () => $("add").click(),
+  onApply: (recipe) => {
+    if (session) {
+      tell(
+        lang === "zh"
+          ? "请先断开当前连接，再填入示例参数。"
+          : "Disconnect before applying another connection.",
+        true,
+      );
+      return false;
+    }
+    $("mode").value = "direct";
+    $("mode").onchange();
+    $("ros").value = String(recipe.ros);
+    $("endpoint").value = recipe.endpoint;
+    $("fixed").value = recipe.fixed;
+    $("qos").checked = false;
+    tell(
+      lang === "zh"
+        ? "已填入示例参数。确认 Docker bridge 就绪后，点击连接。"
+        : "Demo parameters applied. Wait for the bridge-ready log, then Connect.",
+    );
+  },
+});
 void action(async () => {
   await client.connect();
   const r = await call({ action: "sources" });
