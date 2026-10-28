@@ -244,18 +244,202 @@
           flex-wrap: wrap;
         }
       }
+
+      .section-title {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 8px;
+      }
+      .section-title h2 {
+        margin: 0;
+      }
+      .help-dot {
+        padding: 1px 7px;
+        font-size: 11px;
+        border-radius: 50%;
+        color: var(--muted);
+      }
+      .welcome {
+        position: absolute;
+        z-index: 3;
+        left: 24px;
+        right: 24px;
+        top: 90px;
+        max-height: calc(100% - 150px);
+        overflow: auto;
+        border: 1px solid #415a72;
+        background: rgba(23, 37, 53, 0.96);
+        border-radius: 16px;
+        padding: 24px;
+        box-shadow: 0 16px 50px #0003;
+      }
+      .welcome[hidden] {
+        display: none;
+      }
+      .welcome h2 {
+        text-transform: none;
+        color: var(--text);
+        font-size: 20px;
+        letter-spacing: 0;
+      }
+      .welcome p {
+        color: var(--muted);
+        line-height: 1.8;
+      }
+      .welcome-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 9px;
+        margin-top: 18px;
+      }
+      .welcome-actions button:first-child {
+        border-color: var(--accent);
+      }
+      #advice {
+        padding: 12px;
+        border: 1px solid #806547;
+        border-radius: 8px;
+        white-space: pre-wrap;
+        line-height: 1.7;
+        font-size: 12px;
+      }
+      #advice p {
+        margin: 0 0 8px;
+      }
+      #adviceHelp {
+        font-size: 11px;
+      }
+      #guideDialog {
+        color: var(--text);
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        width: min(880px, calc(100% - 32px));
+        max-height: 92vh;
+        padding: 24px;
+        overflow: auto;
+      }
+      #guideDialog::backdrop {
+        background: #06101bc9;
+        backdrop-filter: blur(5px);
+      }
+      .guide-heading {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+      }
+      .guide-heading h1 {
+        font-size: 20px;
+        margin: 0;
+      }
+      .guide-nav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 7px;
+        margin: 18px 0;
+      }
+      .guide-nav button[aria-pressed="true"] {
+        border-color: var(--accent);
+        background: #2c455e;
+      }
+      .guide-settings {
+        display: grid;
+        grid-template-columns: 1fr 2fr;
+        gap: 12px;
+        margin: 16px 0;
+      }
+      .guide-settings[hidden] {
+        display: none;
+      }
+      #guideBody h2 {
+        font-size: 17px;
+        color: var(--text);
+        letter-spacing: 0;
+        text-transform: none;
+      }
+      #guideBody p {
+        line-height: 1.9;
+        margin: 12px 0;
+        color: #b6c7d9;
+      }
+      .command {
+        margin: 16px 0;
+        padding: 12px;
+        background: #111c29;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+      }
+      .command textarea {
+        width: 100%;
+        min-height: 64px;
+        background: transparent;
+        color: #b9e0f5;
+        resize: vertical;
+        border: 0;
+        font:
+          12px/1.6 ui-monospace,
+          monospace;
+      }
+      .command button {
+        font-size: 11px;
+      }
+      .guide-footnote {
+        font-size: 11px;
+        color: var(--muted);
+      }
+      @media (max-width: 560px) {
+        header .badge {
+          display: none;
+        }
+        header {
+          gap: 7px;
+          padding: 0 10px;
+        }
+        header button {
+          font-size: 11px;
+          padding: 6px;
+        }
+        .welcome {
+          left: 12px;
+          right: 12px;
+          padding: 16px;
+        }
+        .welcome h2 {
+          font-size: 16px;
+        }
+        .guide-settings {
+          grid-template-columns: 1fr;
+        }
+        #guideDialog {
+          padding: 17px;
+        }
+      }
     </style>
   </head>
   <body>
     <header>
-      <strong>RViz Workbench</strong><span class="badge">PREVIEW · 0.1.0</span
+      <strong>RViz Workbench</strong
+      ><span class="badge">DEV PREVIEW · 0.1.1</span
       ><small data-i18n="subtitle">项目、坐标与实时话题</small
       ><button id="language" title="Language / 语言">EN</button
+      ><button id="guideOpen" data-guide="start" data-i18n="guide">
+        使用指南</button
       ><button id="home" data-i18n="reset">重置视角</button>
     </header>
     <main>
       <aside>
-        <h2 data-i18n="connection">连接</h2>
+        <div class="section-title">
+          <h2 data-i18n="connection">连接</h2>
+          <button
+            class="help-dot"
+            data-guide="connect"
+            aria-label="连接怎么用 / Help"
+          >
+            ?
+          </button>
+        </div>
         <label for="mode" data-i18n="mode">接入方式</label
         ><select id="mode">
           <option value="direct">ROS bridge</option>
@@ -284,8 +468,21 @@
         <p class="hint" data-i18n="networkHint">
           连接由 Aide 后端发起。SSH 使用后端已有密钥与 known_hosts，不接受密码。
         </p>
+        <div id="advice" hidden>
+          <p id="adviceText"></p>
+          <button id="adviceHelp">查看处理步骤</button>
+        </div>
         <hr />
-        <h2 data-i18n="displays">显示</h2>
+        <div class="section-title">
+          <h2 data-i18n="displays">显示</h2>
+          <button
+            class="help-dot"
+            data-guide="topics"
+            aria-label="显示怎么用 / Help"
+          >
+            ?
+          </button>
+        </div>
         <label for="fixed">Fixed frame</label
         ><input id="fixed" value="map" /><label for="topics" data-i18n="topic"
           >话题</label
@@ -293,16 +490,25 @@
           <option value="">—</option>
         </select>
         <div class="row">
-          <button id="refresh" data-i18n="refresh">刷新话题</button
-          ><button id="add" data-i18n="add">添加</button>
+          <button id="refresh" data-i18n="refresh" disabled>刷新话题</button
+          ><button id="add" data-i18n="add" disabled>添加</button>
         </div>
         <div id="layers"></div>
         <div class="row">
-          <button id="save" data-i18n="save">保存配置</button
+          <button id="save" data-i18n="save" disabled>保存配置</button
           ><button id="demo" data-i18n="demo">演示场景</button>
         </div>
         <hr />
-        <h2 data-i18n="project">项目资源</h2>
+        <div class="section-title">
+          <h2 data-i18n="project">项目资源</h2>
+          <button
+            class="help-dot"
+            data-guide="models"
+            aria-label="项目资源怎么用 / Help"
+          >
+            ?
+          </button>
+        </div>
         <select id="sources"></select
         ><label for="directory" data-i18n="directory">项目相对目录</label
         ><input id="directory" value="." />
@@ -323,6 +529,9 @@
         ><input id="packages" value="{}" />
       </aside>
       <section class="canvas" id="viewport">
+        <section class="welcome" id="welcome" aria-label="快速开始">
+          <div id="welcomeBody"></div>
+        </section>
         <div class="overlay">
           ROS · Z UP<br /><span id="sceneInfo">Grid / Axes</span>
         </div>
@@ -345,6 +554,32 @@
         <img id="image" hidden alt="ROS image preview" />
       </aside>
     </main>
+    <dialog id="guideDialog" aria-labelledby="guideTitle">
+      <div class="guide-heading">
+        <h1 id="guideTitle">使用指南</h1>
+        <button id="guideClose">关闭指南</button>
+      </div>
+      <nav class="guide-nav" id="guideNav" aria-label="Guide sections"></nav>
+      <div class="guide-settings" id="guideSettings" hidden>
+        <div>
+          <label for="guideRos" id="guideRosLabel">示例 ROS 版本</label
+          ><select id="guideRos">
+            <option value="2">ROS 2 Humble</option>
+            <option value="1">ROS 1 Noetic</option>
+          </select>
+        </div>
+        <div>
+          <label for="guideWhere" id="guideWhereLabel"
+            >Aide 实际运行在哪里？</label
+          ><select id="guideWhere">
+            <option value="desktop">Windows/macOS Docker Desktop</option>
+            <option value="native">原生 Aide</option>
+            <option value="network">与 ROS 共用 Docker 网络</option>
+          </select>
+        </div>
+      </div>
+      <div id="guideBody"></div>
+    </dialog>
     <!--BRIDGE-->
     <script>
       /*APP*/

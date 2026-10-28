@@ -1,0 +1,7 @@
+FROM ros:humble-ros-core
+RUN apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+    ros-humble-rosbridge-server ros-humble-rosapi ros-humble-tf2-msgs \
+    ros-humble-nav-msgs ros-humble-visualization-msgs && rm -rf /var/lib/apt/lists/*
+COPY scripts/ros-publisher.py /opt/rviz-demo/publisher.py
+COPY examples/docker/start-demo.sh /opt/rviz-demo/start-demo.sh
+ENTRYPOINT ["/bin/bash", "/opt/rviz-demo/start-demo.sh"]

@@ -5,7 +5,7 @@ import json
 import zipfile
 root = Path(__file__).resolve().parent.parent
 manifest = json.loads((root / 'manifest.json').read_text())
-files = ['manifest.json', 'index.js', 'runtime.cjs', 'viewer.html', 'LICENSE', 'README.md', 'THIRD_PARTY_NOTICES.md', 'assets/THREE-LICENSE.txt', 'assets/WS-LICENSE.txt']
+files = ['manifest.json', 'index.js', 'runtime.cjs', 'viewer.html', 'LICENSE', 'README.md', 'docs/ACCEPTANCE-0.1.1.zh-CN.md', 'THIRD_PARTY_NOTICES.md', 'assets/THREE-LICENSE.txt', 'assets/WS-LICENSE.txt', 'examples/docker/README.md', 'examples/docker/compose.yaml', 'examples/docker/Dockerfile.ros1', 'examples/docker/Dockerfile.ros2', 'examples/docker/start-demo.sh', 'examples/project/robot.urdf', 'scripts/ros-publisher.py']
 out = root / 'dist'
 out.mkdir(exist_ok=True)
 archive = out / f"rviz-{manifest['version']}-preview.zip"
