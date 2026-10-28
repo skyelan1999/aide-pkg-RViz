@@ -380,12 +380,16 @@ async function poll() {
   if (!session || stopped || busy) return;
   busy = true;
   try {
-    renderStatus(
-      await call({ action: "poll", id: session, fixed: $("fixed").value }),
-    );
+    const active = session;
+    const result = await call({
+      action: "poll",
+      id: active,
+      fixed: $("fixed").value,
+    });
+    if (session === active && !stopped) renderStatus(result);
   } catch (e) {
-    tell(e.message, true);
     await disconnect();
+    tell(e.message, true);
   } finally {
     busy = false;
   }
@@ -402,6 +406,11 @@ async function disconnect() {
   markerSets.clear();
   $("image").hidden = true;
   $("layers").replaceChildren();
+  lastFrame = null;
+  actionMessage = "";
+  $("sceneInfo").textContent = "OFFLINE · Grid / Axes";
+  $("frames").textContent = "—";
+  tell(lang === "zh" ? "已断开" : "Disconnected");
 }
 async function action(fn) {
   actionMessage = "";
