@@ -1,0 +1,1 @@
+{"id":"rviz","name":"RViz Workbench","version":"0.1.0","description":"ROS 1 / ROS 2 read-only 3D topic previews, TF and project URDF resources. SSH uses preconfigured backend OpenSSH aliases.","author":"skyelan1999","license":"MIT","main":"index.js","workbench":{"protocol":1,"entry":"viewer.html","title":"RViz Workbench","tools":["rviz_io"]}}
