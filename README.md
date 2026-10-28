@@ -1,8 +1,8 @@
 # RViz Workbench · Aide plugin
 
-A browser-native, read-only ROS 1 / ROS 2 visualization workbench. **0.1.1 is a local guided development preview**, not a complete RViz port. The published release remains 0.1.0 until separately published.
+A browser-native, read-only ROS 1 / ROS 2 visualization workbench. **0.1.1 is a guided preview**, not a complete RViz port.
 
-[Source repository](https://github.com/skyelan1999/aide-pkg-RViz) · [Preview release](https://github.com/skyelan1999/aide-pkg-RViz/releases/tag/v0.1.0) · [Release notes](docs/RELEASE-NOTES-0.1.0.md)
+[Source repository](https://github.com/skyelan1999/aide-pkg-RViz) · [Preview release](https://github.com/skyelan1999/aide-pkg-RViz/releases/tag/v0.1.1) · [Release notes](docs/RELEASE-NOTES-0.1.1.md)
 
 ## Included
 
