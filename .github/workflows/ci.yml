@@ -1,0 +1,70 @@
+name: Plugin CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        node: [18, 22, 24]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Prepare isolated SSH fixture
+        shell: bash
+        run: |
+          if ! command -v sshd >/dev/null; then
+            sudo apt-get update -qq
+            sudo apt-get install -y openssh-server
+          fi
+          fixture="$RUNNER_TEMP/rviz-ssh"
+          mkdir -p "$fixture"
+          ssh-keygen -q -t ed25519 -N '' -f "$fixture/host_key"
+          ssh-keygen -q -t ed25519 -N '' -f "$fixture/client_key"
+          printf '[127.0.0.1]:18498 %s\n' "$(cat "$fixture/host_key.pub")" > "$fixture/known_hosts"
+          cat > "$fixture/sshd_config" <<CONFIG
+          Port 18498
+          ListenAddress 127.0.0.1
+          HostKey "$fixture/host_key"
+          PidFile "$fixture/sshd.pid"
+          AuthorizedKeysFile "$fixture/client_key.pub"
+          StrictModes no
+          PasswordAuthentication no
+          PubkeyAuthentication yes
+          UsePAM no
+          AllowUsers $(id -un)
+          AllowTcpForwarding local
+          LogLevel ERROR
+          CONFIG
+          cat > "$fixture/ssh_config" <<CONFIG
+          Host rviz-fixture
+            HostName 127.0.0.1
+            Port 18498
+            User $(id -un)
+            IdentityFile "$fixture/client_key"
+            IdentitiesOnly yes
+            UserKnownHostsFile "$fixture/known_hosts"
+          CONFIG
+          sudo mkdir -p /run/sshd
+          sudo /usr/sbin/sshd -f "$fixture/sshd_config"
+          echo "RVIZ_SSH_TEST_CONFIG=$fixture/ssh_config" >> "$GITHUB_ENV"
+      - run: npm run build
+      - run: npm test
+      - name: Verify bundled outputs are current
+        run: git diff --exit-code -- index.js runtime.cjs viewer.html assets
+      - run: python3 scripts/package.py
+      - name: Stop isolated SSH fixture
+        if: always()
+        shell: bash
+        run: |
+          if [ -f "$RUNNER_TEMP/rviz-ssh/sshd.pid" ]; then
+            sudo kill "$(cat "$RUNNER_TEMP/rviz-ssh/sshd.pid")" || true
+          fi

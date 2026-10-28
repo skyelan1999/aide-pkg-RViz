@@ -57,4 +57,4 @@ ROS 2 类型名如 `sensor_msgs/msg/LaserScan` 在适配层归一化，保留原
 
 A. 先做宿主流通道/SSH 租约及 ROS 连接诊断；B. Grid、TF、RobotModel、LaserScan；C. PointCloud2、Map、Path、Odometry、Markers、Image；D. 项目配置与 .rviz 部分导入；E. 双 ROS / SSH / 浏览器回归后独立打包。
 
-发布前重新确认公开仓库、许可证、包版本和市场登记。当前不推送、不发布、不动 9999。没有远端机器人时只能报告测试 ROS 环境通过，不能宣称用户真实设备验收。
+最初方案阶段仅本地开发。2026-10-28 用户已授权推送与发布，公开仓库定为 skyelan1999/aide-pkg-RViz，MIT，v0.1.0 预发布；市场登记仍是独立步骤，本次不部署 9999。没有远端机器人时只能报告测试 ROS 环境通过，不能宣称用户真实设备验收。

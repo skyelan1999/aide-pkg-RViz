@@ -1,6 +1,8 @@
 # RViz Workbench · Aide plugin
 
-A browser-native, read-only ROS 1 / ROS 2 visualization workbench. **0.1.0 is a local preview**, not a complete RViz port or published release.
+A browser-native, read-only ROS 1 / ROS 2 visualization workbench. **0.1.0 is a preview**, not a complete RViz port.
+
+[Source repository](https://github.com/skyelan1999/aide-pkg-RViz) · [Preview release](https://github.com/skyelan1999/aide-pkg-RViz/releases/tag/v0.1.0) · [Release notes](docs/RELEASE-NOTES-0.1.0.md)
 
 ## Included
 
@@ -13,7 +15,7 @@ A browser-native, read-only ROS 1 / ROS 2 visualization workbench. **0.1.0 is a 
 
 ## Install and connect
 
-Build or use the locally generated ZIP in `dist/`, then import it through Aide's plugin installation UI and open its workbench. Installation and live Aide integration have not yet been accepted on a user's ROS project; see `docs/ACCEPTANCE.zh-CN.md` for exact tested boundaries. Requires Node.js 18+ in the backend and an Aide host with the source and workbench protocols used by this plugin.
+Download the plugin ZIP from the preview release (or build it locally), verify `SHA256SUMS`, then import it through Aide's plugin installation UI and open its workbench. Installation and live Aide integration have not yet been accepted on a user's ROS project; see `docs/ACCEPTANCE.zh-CN.md` for exact tested boundaries. Requires Node.js 18+ in the backend and an Aide host with the source and workbench protocols used by this plugin.
 
 1. Start rosbridge and rosapi in your ROS environment. Install the message definitions needed by your topics, including `tf2_msgs` for TF.
 2. Choose ROS 1 or ROS 2 and enter the `ws://` / `wss://` bridge URL reachable from the **Aide backend**, not necessarily from the browser's computer. URL user-info credentials are rejected; authenticated rosbridge sessions are not implemented in this preview.
@@ -52,4 +54,4 @@ The preview server binds only `127.0.0.1:18496`. Its project source is synthetic
 
 Real ROS acceptance uses `scripts/ros-publisher.py` in an isolated ROS environment and `node scripts/verify-ros.js 1|2 ws://endpoint`. Set `RVIZ_SSH_TEST_CONFIG` only for an isolated SSH fixture using the `rviz-fixture` alias. The standalone SSH test is skipped when that fixture is not supplied.
 
-Architecture, requirements and acceptance notes stay in this plugin repository. No remote repository, push, marketplace entry, release or 9999 deployment has been performed.
+Architecture, requirements and acceptance notes stay in this plugin repository. Marketplace registration is separate from the GitHub preview release. Publishing this plugin does not modify or deploy the Aide main application or the local 9999 service.
