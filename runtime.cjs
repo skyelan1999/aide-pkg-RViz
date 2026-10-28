@@ -4287,7 +4287,8 @@ async function serve(config, file) {
     requestTopics();
   });
   socket.on("error", () => {
-    error = "ROS bridge connection failed; check endpoint / bridge / SSH diagnostics";
+    if (!error)
+      error = "ROS bridge connection failed; check endpoint / bridge / SSH diagnostics";
   });
   socket.on("close", () => {
     if (!closed && !error)

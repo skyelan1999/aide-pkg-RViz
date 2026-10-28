@@ -9,6 +9,7 @@ jobs:
   test:
     runs-on: ubuntu-24.04
     strategy:
+      fail-fast: false
       matrix:
         node: [18, 22, 24]
     steps:
@@ -39,7 +40,7 @@ jobs:
           StrictModes no
           PasswordAuthentication no
           PubkeyAuthentication yes
-          UsePAM no
+          UsePAM yes
           AllowUsers $(id -un)
           AllowTcpForwarding local
           LogLevel ERROR
@@ -54,7 +55,8 @@ jobs:
             UserKnownHostsFile "$fixture/known_hosts"
           CONFIG
           sudo mkdir -p /run/sshd
-          sudo /usr/sbin/sshd -f "$fixture/sshd_config"
+          sudo /usr/sbin/sshd -E "$fixture/sshd.log" -f "$fixture/sshd_config"
+          ssh -F "$fixture/ssh_config" -o BatchMode=yes -o StrictHostKeyChecking=yes rviz-fixture true
           echo "RVIZ_SSH_TEST_CONFIG=$fixture/ssh_config" >> "$GITHUB_ENV"
       - run: npm run build
       - run: npm test
